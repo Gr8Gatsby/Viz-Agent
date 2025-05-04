@@ -1,0 +1,23 @@
+{
+  "name": "Simple Charting Agent (Vercel)",
+  "description": "Analyzes CSV data and generates suggested chart images via an API endpoint.",
+  "capabilities": {
+    "accepts": ["text/csv"],
+    "returns": ["application/json", "image/png", "image/jpeg", "image/svg"]
+  },
+  "methods": [
+    {
+      "name": "analyzeData",
+      "description": "Analyzes the CSV and returns suggestions. Use the /send endpoint with appropriate parameters.",
+      "accepts": "application/json",
+      "returns": "application/json"
+    },
+    {
+      "name": "createChart",
+      "description": "Generates the specified chart. Use the /send endpoint with appropriate parameters.",
+      "accepts": "application/json",
+      "returns": "application/json"
+    }
+  ],
+  "endpoint": "/.well-known/a2a/tasks/send"
+} 

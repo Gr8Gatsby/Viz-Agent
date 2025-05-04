@@ -1,0 +1,20 @@
+{
+  "name": "charting-agent",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.1.15",
+    "typescript": "~5.7.2",
+    "vite": "^6.3.1"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.9",
+    "papaparse": "^5.5.2"
+  }
+}
