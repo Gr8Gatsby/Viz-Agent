@@ -19,5 +19,5 @@
       "returns": "application/json"
     }
   ],
-  "endpoint": "/.well-known/a2a/tasks/send"
+  "endpoint": "/api/charting"
 } 

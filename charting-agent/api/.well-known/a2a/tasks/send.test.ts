@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import handler from './send'; // Import the handler function
+import handler from './send.ts';
 
 // Mock the charting logic module
 vi.mock('../../src/charting-logic', () => ({
@@ -55,9 +55,15 @@ describe('API Handler: /.well-known/a2a/tasks/send', () => {
 
     expect(res.status).toHaveBeenCalledWith(405);
     expect(res.setHeader).toHaveBeenCalledWith('Allow', ['POST']);
-    expect(res.end).toHaveBeenCalledWith('Method GET Not Allowed. Only POST is supported.');
-    expect(res._json.status).toBe('failed'); // Check standardized error
-    expect(res._json.error.code).toBe('METHOD_NOT_ALLOWED');
+    expect(res.json).toHaveBeenCalled(); 
+    expect(res._json).toEqual({
+      status: 'failed', 
+      error: { 
+        code: 'METHOD_NOT_ALLOWED', 
+        message: 'Method GET Not Allowed. Only POST is supported.' 
+      }
+    });
+    expect(res.end).not.toHaveBeenCalled();
   });
 
   it('should return 400 for invalid JSON payload', async () => {

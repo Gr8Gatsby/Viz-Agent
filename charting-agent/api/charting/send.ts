@@ -1,52 +1,41 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Papa from 'papaparse'; // Import Papaparse
-import { createChartImage } from '../../src/charting-logic'; // Import the charting function
-import { ParsedCsvData } from '../../src/types'; // Import the data type
-
-// TODO: Replace with actual CSV parsing, analysis, and charting logic import
-// import { analyzeData, createChart } from '../../src/agent-logic'; // Example structure
+import Papa from 'papaparse';
+import { createChartImage } from '../../src/charting-logic'; 
+import { ParsedCsvData } from '../../src/types'; 
 
 // --- A2A Interfaces ---
 
-// Expected structure of the JSON payload in the POST request body
 interface A2ATaskInput {
   taskType: 'analyze' | 'create';
-  csvData: string; // Assuming inline CSV data for now
-  chartType?: 'bar' | 'line' | 'pie'; // Required for 'create' task
-  options?: { // Chart options required for 'create' task
+  csvData: string; 
+  chartType?: 'bar' | 'line' | 'pie'; 
+  options?: { 
     labelColumn: string;
     dataColumns: string[];
     title?: string;
-    // Add other potential chart options here
   };
-  // Add other potential top-level parameters from coordinator
 }
 
-// Standard A2A Success Response structure
 interface A2ASuccessResponse {
-  status: 'completed' | 'processing'; // Use 'completed' for sync, 'processing' if async
-  result_reference?: any; // e.g., base64 image string, analysis object, URL
-  result_schema?: { type: string; encoding?: string }; // Describes the result_reference
-  message?: string; // Optional human-readable message
-  // Add other required A2A success fields
+  status: 'completed' | 'processing'; 
+  result_reference?: any; 
+  result_schema?: { type: string; encoding?: string }; 
+  message?: string; 
 }
 
-// Standard A2A Error Response structure
 interface A2AErrorResponse {
   status: 'failed';
   error: {
-    code: string; // e.g., 'INVALID_INPUT', 'PROCESSING_FAILED'
-    message: string; // Human-readable error description
+    code: string; 
+    message: string; 
   };
-  // Add other required A2A error fields
 }
 
-// Type alias for handler responses
 type A2AResponse = A2ASuccessResponse | A2AErrorResponse;
 
 // --- Helper Function for Data Type Detection ---
 
-const SAMPLE_SIZE = 50; // Number of rows to sample for type detection
+const SAMPLE_SIZE = 50;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$/;
 
 interface ColumnAnalysis { 
@@ -59,72 +48,33 @@ interface ColumnAnalysis {
 
 function detectColumnTypes(data: any[], headers: string[]): ColumnAnalysis {
   const analysis: ColumnAnalysis = {
-    numericColumns: [],
-    categoryColumns: [],
-    timeColumns: [],
-    booleanColumns: [],
-    columnTypes: {}
+    numericColumns: [], categoryColumns: [], timeColumns: [], booleanColumns: [], columnTypes: {}
   };
-
-  if (!data || data.length === 0 || !headers || headers.length === 0) {
-    return analysis; // Return empty analysis if no data/headers
-  }
-
+  if (!data || data.length === 0 || !headers || headers.length === 0) return analysis;
   const sampleData = data.slice(0, SAMPLE_SIZE);
-
   for (const header of headers) {
-    let numberCount = 0;
-    let stringCount = 0;
-    let booleanCount = 0;
-    let dateCount = 0;
-    let nonNullSamples = 0;
-
+    let numberCount = 0, stringCount = 0, booleanCount = 0, dateCount = 0, nonNullSamples = 0;
     for (const row of sampleData) {
       const value = row[header];
-
-      if (value === null || value === undefined || value === '') {
-        continue; // Skip empty/null values
-      }
+      if (value === null || value === undefined || value === '') continue;
       nonNullSamples++;
-
-      if (typeof value === 'number' && !isNaN(value)) {
-        numberCount++;
-      } else if (typeof value === 'boolean') {
-        booleanCount++;
-      } else if (typeof value === 'string') {
-        if (DATE_REGEX.test(value)) { // Check if string matches date pattern
-          // Further validation could be added here (e.g., try new Date(value))
-          dateCount++;
-        } else {
-          stringCount++;
-        }
-      } else {
-        // Handle other potential types if necessary (e.g., objects?)
-        stringCount++; // Treat unexpected types as strings for now
-      }
+      if (typeof value === 'number' && !isNaN(value)) numberCount++;
+      else if (typeof value === 'boolean') booleanCount++;
+      else if (typeof value === 'string') {
+        const potentialNum = Number(value);
+        if (!isNaN(potentialNum) && value.trim() !== '') numberCount++;
+        else if (DATE_REGEX.test(value)) dateCount++;
+        else stringCount++;
+      } else stringCount++;
     }
-
-    // Determine dominant type based on counts (adjust thresholds if needed)
     let dominantType: 'number' | 'string' | 'boolean' | 'date' | 'unknown' = 'unknown';
-
-    if (nonNullSamples === 0) {
-        dominantType = 'unknown'; // No non-empty data found in sample
-    } else if (dateCount > 0 && dateCount >= nonNullSamples * 0.8) { // High confidence for dates
-        dominantType = 'date';
-        analysis.timeColumns.push(header);
-    } else if (numberCount > 0 && numberCount >= nonNullSamples * 0.8) { // High confidence for numbers
-        dominantType = 'number';
-        analysis.numericColumns.push(header);
-    } else if (booleanCount > 0 && booleanCount >= nonNullSamples * 0.8) { // High confidence for booleans
-        dominantType = 'boolean';
-        analysis.booleanColumns.push(header); // Added boolean column tracking
-    } else { // Default to string if no dominant type or mixed types
-        dominantType = 'string';
-        analysis.categoryColumns.push(header);
-    }
+    if (nonNullSamples === 0) dominantType = 'unknown';
+    else if (dateCount > 0 && dateCount >= nonNullSamples * 0.8) { dominantType = 'date'; analysis.timeColumns.push(header); }
+    else if (numberCount > 0 && numberCount >= nonNullSamples * 0.8) { dominantType = 'number'; analysis.numericColumns.push(header); }
+    else if (booleanCount > 0 && booleanCount >= nonNullSamples * 0.8) { dominantType = 'boolean'; analysis.booleanColumns.push(header); }
+    else { dominantType = 'string'; analysis.categoryColumns.push(header); }
     analysis.columnTypes[header] = dominantType;
   }
-
   console.log('Column Type Analysis:', analysis.columnTypes);
   return analysis;
 }
@@ -135,99 +85,68 @@ export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
 ) {
-  // Function to send standardized error responses
   const sendError = (statusCode: number, code: string, message: string) => {
-    const errorResponse: A2AErrorResponse = {
-      status: 'failed',
-      error: { code, message },
-    };
+    const errorResponse: A2AErrorResponse = { status: 'failed', error: { code, message } };
     response.status(statusCode).json(errorResponse);
   };
 
   if (request.method !== 'POST') {
     response.setHeader('Allow', ['POST']);
-    // Use standard error format
     return sendError(405, 'METHOD_NOT_ALLOWED', `Method ${request.method} Not Allowed. Only POST is supported.`);
   }
 
   try {
-    const taskInput = request.body as A2ATaskInput; // Cast to defined interface
-
-    // --- Input Validation ---
+    const taskInput = request.body as A2ATaskInput;
     if (!taskInput || typeof taskInput !== 'object') {
       return sendError(400, 'BAD_REQUEST', 'Invalid or missing JSON payload.');
     }
-
-    // --- Validate Task Type --- 
     const { taskType, csvData, chartType, options } = taskInput;
     if (!taskType || (taskType !== 'analyze' && taskType !== 'create')) {
       return sendError(400, 'INVALID_TASK_TYPE', 'Missing or invalid taskType field (must be \'analyze\' or \'create\').');
     }
-
-    // --- Validate and Parse CSV Data --- 
     if (!csvData || typeof csvData !== 'string' || csvData.trim().length === 0) {
       return sendError(400, 'MISSING_INPUT', 'Missing or empty csvData field (string) is required.');
     }
 
     let parsedDataResult: { data: any[], headers: string[] };
     try {
-      // Encapsulate parsing result
       parsedDataResult = await parseCsvData(csvData);
     } catch (error: any) {
        return sendError(400, error.code || 'INVALID_CSV_FORMAT', error.message);
     }
     const { data: parsedData, headers } = parsedDataResult;
     
-    // --- Route based on Task Type --- 
     let a2aResponse: A2ASuccessResponse;
 
     if (taskType === 'analyze') {
       console.log('Routing to: analyzeData logic');
-      
-      // --- Perform Data Analysis using helper function ---
       const columnAnalysis = detectColumnTypes(parsedData, headers);
-
-      // --- TODO: Suggest chart types based on analysis --- 
       let suggestedChartTypes: string[] = [];
-      // Basic suggestion logic (can be expanded):
       const hasNumeric = columnAnalysis.numericColumns.length > 0;
       const hasCategory = columnAnalysis.categoryColumns.length > 0;
       const hasTime = columnAnalysis.timeColumns.length > 0;
-
-      if (hasCategory && hasNumeric) {
-        suggestedChartTypes.push('bar', 'pie');
-      }
-      if ((hasTime || hasCategory) && columnAnalysis.numericColumns.length >= 1) {
-        suggestedChartTypes.push('line');
-      }
-      if (columnAnalysis.numericColumns.length >= 2) {
-        // suggestedChartTypes.push('scatter'); // Add later if needed
-      }
-      // Remove duplicates
-      suggestedChartTypes = [...new Set(suggestedChartTypes)]; 
-
+      if (hasCategory && hasNumeric) suggestedChartTypes.push('bar', 'pie');
+      if ((hasTime || hasCategory) && hasNumeric) suggestedChartTypes.push('line');
+      suggestedChartTypes = [...new Set(suggestedChartTypes)];
       const analysisResult = {
-        suggestedChartTypes: suggestedChartTypes,
-        analysisDetails: { 
+        suggestedChartTypes,
+        analysisDetails: {
           numericColumns: columnAnalysis.numericColumns,
           categoryColumns: columnAnalysis.categoryColumns,
           timeColumns: columnAnalysis.timeColumns,
-          booleanColumns: columnAnalysis.booleanColumns, // Include detected boolean columns
-          allColumnTypes: columnAnalysis.columnTypes // Include the map of all detected types
+          booleanColumns: columnAnalysis.booleanColumns, 
+          allColumnTypes: columnAnalysis.columnTypes 
         }
       };
-      
       a2aResponse = {
         status: 'completed', 
-        result_reference: analysisResult, // Send analysis object directly
-        result_schema: { type: 'application/json' }, // Describe the result
+        result_reference: analysisResult,
+        result_schema: { type: 'application/json' }, 
         message: 'Data analysis complete.'
       };
       
-    } else if (taskType === 'create') {
+    } else { // taskType === 'create'
       console.log('Routing to: createChart logic');
-      
-      // --- Validate Create Task Parameters ---
       if (!chartType || !['bar', 'line', 'pie'].includes(chartType)) {
         return sendError(400, 'INVALID_PARAMETER', 'Invalid or missing chartType (must be bar, line, or pie) for create task.');
       }
@@ -248,41 +167,30 @@ export default async function handler(
           return sendError(400, 'INVALID_PARAMETER', `Data column '${col}' is invalid or not found in CSV headers.`);
         }
       }
-
-      // --- Generate Chart --- 
       try {
         const chartDataInput: ParsedCsvData = { data: parsedData, headers };
-        const base64Image = await createChartImage(
-          chartDataInput,
-          chartType,
-          options // Pass validated options directly
-        );
-
-        // --- Format Success Response --- 
+        const base64Image = await createChartImage(chartDataInput, chartType, options);
         a2aResponse = {
           status: 'completed',
           result_reference: base64Image, 
           result_schema: { type: 'image/png', encoding: 'base64' }, 
           message: 'Chart created successfully.'
         };
-        
       } catch (chartError: any) {
         console.error("Chart generation error:", chartError);
-        return sendError(500, 'CHART_GENERATION_FAILED', chartError.message || 'Failed to generate chart image.');
+        await sendError(500, 'CHART_GENERATION_FAILED', chartError.message || 'Failed to generate chart image.');
+        return;
       }
-
-    } else {
-      // This case should technically be caught by the initial taskType check, but belts and suspenders...
-      return sendError(500, 'UNEXPECTED_STATE', 'Invalid task routing state.');
     }
-
-    // Send the standard A2A success response
-    response.status(200).json(a2aResponse);
+    if (!response.writableEnded) {
+       response.status(200).json(a2aResponse);
+    }
 
   } catch (error: any) {
     console.error("Unhandled error processing task:", error);
-    // Send a generic A2A-compliant error response for unexpected errors
-    sendError(500, 'INTERNAL_SERVER_ERROR', error.message || 'An internal server error occurred.');
+    if (!response.writableEnded) {
+       sendError(500, 'INTERNAL_SERVER_ERROR', error.message || 'An internal server error occurred.');
+    }
   }
 }
 
@@ -290,15 +198,12 @@ export default async function handler(
 async function parseCsvData(csvString: string): Promise<{ data: any[], headers: string[] }> {
   return new Promise((resolve, reject) => {
     Papa.parse(csvString, {
-      header: true,
-      skipEmptyLines: true,
-      dynamicTyping: true,
+      header: true, skipEmptyLines: true, dynamicTyping: true,
       complete: (results) => {
         if (results.errors && results.errors.length > 0) {
           console.error('CSV Parsing Errors:', results.errors);
           const firstError = results.errors[0];
           const errorMessage = `CSV Parsing Error: ${firstError.message || 'Unknown error'}${firstError.row ? ' on row ' + firstError.row : ''}`;
-          // Reject with a structured error
           return reject({ code: 'INVALID_CSV_FORMAT', message: errorMessage });
         }
         if (!results.data || results.data.length === 0) {
