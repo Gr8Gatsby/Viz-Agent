@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import Papa from 'papaparse';
+import * as Papa from 'papaparse';
 import { createChartImage } from '../../src/charting-logic'; 
 import { ParsedCsvData } from '../../src/types'; 
 
@@ -199,7 +199,7 @@ async function parseCsvData(csvString: string): Promise<{ data: any[], headers: 
   return new Promise((resolve, reject) => {
     Papa.parse(csvString, {
       header: true, skipEmptyLines: true, dynamicTyping: true,
-      complete: (results) => {
+      complete: (results: Papa.ParseResult<any>) => {
         if (results.errors && results.errors.length > 0) {
           console.error('CSV Parsing Errors:', results.errors);
           const firstError = results.errors[0];

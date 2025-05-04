@@ -19,5 +19,5 @@
       "returns": "application/json"
     }
   ],
-  "endpoint": "/api/charting"
+  "endpoint": "/api/charting/send"
 } 
