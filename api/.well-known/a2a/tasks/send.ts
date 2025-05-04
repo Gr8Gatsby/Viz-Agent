@@ -6,6 +6,44 @@ import { ParsedCsvData } from '../../src/types'; // Import the data type
 // TODO: Replace with actual CSV parsing, analysis, and charting logic import
 // import { analyzeData, createChart } from '../../src/agent-logic'; // Example structure
 
+// --- A2A Interfaces ---
+
+// Expected structure of the JSON payload in the POST request body
+interface A2ATaskInput {
+  taskType: 'analyze' | 'create';
+  csvData: string; // Assuming inline CSV data for now
+  chartType?: 'bar' | 'line' | 'pie'; // Required for 'create' task
+  options?: { // Chart options required for 'create' task
+    labelColumn: string;
+    dataColumns: string[];
+    title?: string;
+    // Add other potential chart options here
+  };
+  // Add other potential top-level parameters from coordinator
+}
+
+// Standard A2A Success Response structure
+interface A2ASuccessResponse {
+  status: 'completed' | 'processing'; // Use 'completed' for sync, 'processing' if async
+  result_reference?: any; // e.g., base64 image string, analysis object, URL
+  result_schema?: { type: string; encoding?: string }; // Describes the result_reference
+  message?: string; // Optional human-readable message
+  // Add other required A2A success fields
+}
+
+// Standard A2A Error Response structure
+interface A2AErrorResponse {
+  status: 'failed';
+  error: {
+    code: string; // e.g., 'INVALID_INPUT', 'PROCESSING_FAILED'
+    message: string; // Human-readable error description
+  };
+  // Add other required A2A error fields
+}
+
+// Type alias for handler responses
+type A2AResponse = A2ASuccessResponse | A2AErrorResponse;
+
 // --- Helper Function for Data Type Detection ---
 
 const SAMPLE_SIZE = 50; // Number of rows to sample for type detection
@@ -97,90 +135,51 @@ export default async function handler(
   request: VercelRequest,
   response: VercelResponse,
 ) {
+  // Function to send standardized error responses
+  const sendError = (statusCode: number, code: string, message: string) => {
+    const errorResponse: A2AErrorResponse = {
+      status: 'failed',
+      error: { code, message },
+    };
+    response.status(statusCode).json(errorResponse);
+  };
+
   if (request.method !== 'POST') {
     response.setHeader('Allow', ['POST']);
-    return response.status(405).end(`Method ${request.method} Not Allowed`);
+    // Use standard error format
+    return sendError(405, 'METHOD_NOT_ALLOWED', `Method ${request.method} Not Allowed. Only POST is supported.`);
   }
 
   try {
-    const taskInput = request.body;
+    const taskInput = request.body as A2ATaskInput; // Cast to defined interface
 
-    // --- Basic Input Validation ---
+    // --- Input Validation ---
     if (!taskInput || typeof taskInput !== 'object') {
-      return response.status(400).json({
-        status: 'failed',
-        error: { code: 'BAD_REQUEST', message: 'Invalid JSON payload.' }
-      });
+      return sendError(400, 'BAD_REQUEST', 'Invalid or missing JSON payload.');
     }
 
-    // --- Extract Task Type --- 
-    const taskType = taskInput.taskType as string;
+    // --- Validate Task Type --- 
+    const { taskType, csvData, chartType, options } = taskInput;
     if (!taskType || (taskType !== 'analyze' && taskType !== 'create')) {
-      return response.status(400).json({
-        status: 'failed',
-        error: { code: 'INVALID_TASK_TYPE', message: 'Missing or invalid taskType field (must be \'analyze\' or \'create\').' }
-      });
+      return sendError(400, 'INVALID_TASK_TYPE', 'Missing or invalid taskType field (must be \'analyze\' or \'create\').');
     }
 
-    // --- Extract and Parse CSV Data --- 
-    const csvDataString = taskInput.csvData as string;
-
-    if (!csvDataString || typeof csvDataString !== 'string') {
-      return response.status(400).json({
-        status: 'failed',
-        error: { code: 'MISSING_INPUT', message: 'csvData field (string) is required.' }
-      });
+    // --- Validate and Parse CSV Data --- 
+    if (!csvData || typeof csvData !== 'string' || csvData.trim().length === 0) {
+      return sendError(400, 'MISSING_INPUT', 'Missing or empty csvData field (string) is required.');
     }
 
-    console.log("Received task with csvData:", csvDataString.substring(0, 150) + (csvDataString.length > 150 ? '...' : ''));
-
-    // --- Parse CSV Data ---
-    let parsedData: any[] = [];
-    let headers: string[] = [];
-
+    let parsedDataResult: { data: any[], headers: string[] };
     try {
-      const parseResult = Papa.parse(csvDataString, {
-        header: true, // Treat the first row as headers
-        skipEmptyLines: true,
-        dynamicTyping: true, // Automatically convert numbers, booleans
-      });
-
-      if (parseResult.errors && parseResult.errors.length > 0) {
-        console.error('CSV Parsing Errors:', parseResult.errors);
-        // Try to provide a specific error message if possible
-        const firstError = parseResult.errors[0];
-        const errorMessage = `CSV Parsing Error: ${firstError.message || 'Unknown error'} on row ${firstError.row || 'N/A'}`;
-        return response.status(400).json({
-          status: 'failed',
-          error: { code: 'INVALID_CSV_FORMAT', message: errorMessage }
-        });
-      }
-
-      if (!parseResult.data || parseResult.data.length === 0) {
-        return response.status(400).json({
-          status: 'failed',
-          error: { code: 'EMPTY_DATA', message: 'CSV data is empty or contains only headers.' }
-        });
-      }
-
-      parsedData = parseResult.data;
-      headers = parseResult.meta.fields || []; // Get header names
-      console.log("CSV Parsed Successfully. Headers:", headers);
-      // console.log("Parsed Data Sample:", parsedData.slice(0, 3)); // Log first few rows for debugging
-      
-      // Data is now parsed and stored in 'parsedData' array of objects
-      // Headers are in the 'headers' array
-
-    } catch (parseError: any) {
-      console.error("Papaparse critical error:", parseError);
-      return response.status(400).json({
-        status: 'failed',
-        error: { code: 'INVALID_CSV_FORMAT', message: parseError.message || 'Failed to parse CSV data.' }
-      });
+      // Encapsulate parsing result
+      parsedDataResult = await parseCsvData(csvData);
+    } catch (error: any) {
+       return sendError(400, error.code || 'INVALID_CSV_FORMAT', error.message);
     }
-
+    const { data: parsedData, headers } = parsedDataResult;
+    
     // --- Route based on Task Type --- 
-    let a2aResponse: object;
+    let a2aResponse: A2ASuccessResponse;
 
     if (taskType === 'analyze') {
       console.log('Routing to: analyzeData logic');
@@ -220,112 +219,97 @@ export default async function handler(
       
       a2aResponse = {
         status: 'completed', 
-        result: analysisResult,
+        result_reference: analysisResult, // Send analysis object directly
+        result_schema: { type: 'application/json' }, // Describe the result
         message: 'Data analysis complete.'
       };
       
     } else if (taskType === 'create') {
       console.log('Routing to: createChart logic');
       
-      // --- Extract chart parameters ---
-      const chartType = taskInput.chartType as string;
-      // The options object is expected to contain labelColumn, dataColumns, title?, etc.
-      const options = taskInput.options as any; // Cast as any for now, validate below
-
-      // --- Validate parameters ---
-      if (!chartType || !['bar', 'line', 'pie'].includes(chartType)) { // Basic type validation
-        return response.status(400).json({
-          status: 'failed',
-          error: { code: 'INVALID_PARAMETER', message: 'Invalid or missing chartType (must be bar, line, or pie).' }
-        });
+      // --- Validate Create Task Parameters ---
+      if (!chartType || !['bar', 'line', 'pie'].includes(chartType)) {
+        return sendError(400, 'INVALID_PARAMETER', 'Invalid or missing chartType (must be bar, line, or pie) for create task.');
       }
       if (!options || typeof options !== 'object') {
-        return response.status(400).json({
-          status: 'failed',
-          error: { code: 'MISSING_PARAMETER', message: 'Missing options object for chart creation.' }
-        });
+        return sendError(400, 'MISSING_PARAMETER', 'Missing options object for create task.');
       }
       if (!options.labelColumn || typeof options.labelColumn !== 'string') {
-        return response.status(400).json({
-          status: 'failed',
-          error: { code: 'MISSING_PARAMETER', message: 'Missing or invalid options.labelColumn (string).' }
-        });
+        return sendError(400, 'MISSING_PARAMETER', 'Missing or invalid options.labelColumn (string).');
       }
       if (!options.dataColumns || !Array.isArray(options.dataColumns) || options.dataColumns.length === 0) {
-        return response.status(400).json({
-          status: 'failed',
-          error: { code: 'MISSING_PARAMETER', message: 'Missing or invalid options.dataColumns (non-empty array).' }
-        });
+        return sendError(400, 'MISSING_PARAMETER', 'Missing or invalid options.dataColumns (non-empty array).');
       }
-       // Basic check if columns exist in headers (more robust check in createChartImage)
       if (!headers.includes(options.labelColumn)) {
-         return response.status(400).json({ status: 'failed', error: { code: 'INVALID_PARAMETER', message: `Label column '${options.labelColumn}' not found in CSV headers.` } });
+         return sendError(400, 'INVALID_PARAMETER', `Label column '${options.labelColumn}' not found in CSV headers.`);
       }
       for (const col of options.dataColumns) {
         if (typeof col !== 'string' || !headers.includes(col)) {
-          return response.status(400).json({ status: 'failed', error: { code: 'INVALID_PARAMETER', message: `Data column '${col}' is invalid or not found in CSV headers.` } });
+          return sendError(400, 'INVALID_PARAMETER', `Data column '${col}' is invalid or not found in CSV headers.`);
         }
       }
 
-      // --- Prepare data for charting function ---
-      const chartDataInput: ParsedCsvData = {
-        data: parsedData,
-        headers: headers
-      };
-      
       // --- Generate Chart --- 
       try {
+        const chartDataInput: ParsedCsvData = { data: parsedData, headers };
         const base64Image = await createChartImage(
           chartDataInput,
-          chartType as 'bar' | 'line' | 'pie', // Type assertion after validation
-          {
-            // Pass validated options
-            labelColumn: options.labelColumn,
-            dataColumns: options.dataColumns,
-            title: options.title as string | undefined // Optional title
-          }
+          chartType,
+          options // Pass validated options directly
         );
 
         // --- Format Success Response --- 
         a2aResponse = {
           status: 'completed',
-          result_reference: base64Image, // Send base64 image directly
-          result_schema: { type: 'image/png', encoding: 'base64' }, // Describe the result
+          result_reference: base64Image, 
+          result_schema: { type: 'image/png', encoding: 'base64' }, 
           message: 'Chart created successfully.'
         };
         
       } catch (chartError: any) {
         console.error("Chart generation error:", chartError);
-        // Return specific error from chart generation if available
-        return response.status(500).json({
-          status: 'failed',
-          error: { 
-            code: 'CHART_GENERATION_FAILED', 
-            message: chartError.message || 'Failed to generate chart image.' 
-          }
-        });
+        return sendError(500, 'CHART_GENERATION_FAILED', chartError.message || 'Failed to generate chart image.');
       }
 
     } else {
       // This case should technically be caught by the initial taskType check, but belts and suspenders...
-      return response.status(500).json({
-        status: 'failed',
-        error: { code: 'UNEXPECTED_STATE', message: 'Invalid task routing state.' }
-      });
+      return sendError(500, 'UNEXPECTED_STATE', 'Invalid task routing state.');
     }
 
-    // Send the standard A2A response
+    // Send the standard A2A success response
     response.status(200).json(a2aResponse);
 
   } catch (error: any) {
-    console.error("Error processing task:", error);
-    // Send an A2A-compliant error response
-    response.status(500).json({
-      status: 'failed',
-      error: {
-        code: 'INTERNAL_SERVER_ERROR',
-        message: error.message || 'An internal error occurred.'
+    console.error("Unhandled error processing task:", error);
+    // Send a generic A2A-compliant error response for unexpected errors
+    sendError(500, 'INTERNAL_SERVER_ERROR', error.message || 'An internal server error occurred.');
+  }
+}
+
+// --- Helper function to encapsulate CSV Parsing ---
+async function parseCsvData(csvString: string): Promise<{ data: any[], headers: string[] }> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(csvString, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: true,
+      complete: (results) => {
+        if (results.errors && results.errors.length > 0) {
+          console.error('CSV Parsing Errors:', results.errors);
+          const firstError = results.errors[0];
+          const errorMessage = `CSV Parsing Error: ${firstError.message || 'Unknown error'}${firstError.row ? ' on row ' + firstError.row : ''}`;
+          // Reject with a structured error
+          return reject({ code: 'INVALID_CSV_FORMAT', message: errorMessage });
+        }
+        if (!results.data || results.data.length === 0) {
+          return reject({ code: 'EMPTY_DATA', message: 'CSV data is empty or contains only headers.' });
+        }
+        resolve({ data: results.data, headers: results.meta.fields || [] });
+      },
+      error: (error: Error) => {
+        console.error('Papaparse critical error:', error);
+        reject({ code: 'INVALID_CSV_FORMAT', message: error.message || 'Failed to parse CSV data.' });
       }
     });
-  }
+  });
 } 

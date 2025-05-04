@@ -8,15 +8,18 @@ export default defineConfig({
   test: {
     globals: true, // Use global variables (describe, it, expect) like Jest
     environment: 'node', // Specify environment for testing Node.js code
+    // Explicitly include test files from both src and api directories
+    include: ['src/**/*.test.ts', 'api/**/*.test.ts'],
     coverage: {
       provider: 'v8', // Specify the coverage provider
       reporter: ['text', 'json', 'html'], // Report formats
       reportsDirectory: './coverage', // Where to output reports
-      // Add directories/files to include in coverage:
+      // Coverage include/exclude (Source files to measure):
       include: ['src/**/*.ts', 'api/**/*.ts'], 
-      // Exclude files (like tests, types, configs):
       exclude: [
-        'src/**/*.test.ts',
+        // No need to exclude tests from coverage again here if defined above
+        // 'src/**/*.test.ts',
+        // 'api/**/*.test.ts', 
         'src/types.ts',
         'src/vite-env.d.ts',
         'vite.config.ts',
