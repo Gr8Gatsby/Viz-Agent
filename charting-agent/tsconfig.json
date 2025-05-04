@@ -2,25 +2,31 @@
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
-    "module": "ESNext",
+    "module": "NodeNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
 
+    /* Base URL and Path Aliases */
+    // "baseUrl": ".", 
+    // "paths": {
+    //   "@/*": ["src/*"]
+    // },
+
     /* Bundler mode & Node.js Compatibility */
-    "moduleResolution": "node",
-    "allowImportingTsExtensions": true,
+    "moduleResolution": "NodeNext",
+    // "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
-    "types": ["node", "@vercel/node"],
+    // "noEmit": true, // Allow Vercel to emit JS for API routes
+    "types": ["node"],
 
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noFallthroughCasesInSwitch": true
+    // "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "api"]
+  "include": ["src", "api", "vite.config.ts", "vitest.setup.ts"]
 }

@@ -1,6 +1,6 @@
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { createCanvas } from 'canvas'; // Use node-canvas for offscreen rendering
-import { ParsedCsvData } from './types'; // Define types later
+import { ParsedCsvData } from './types.js'; // Needs .js extension for ESM
 
 // Register necessary Chart.js components
 Chart.register(...registerables);

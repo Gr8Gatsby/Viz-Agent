@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import * as Papa from 'papaparse';
-import { createChartImage } from '../../src/charting-logic'; 
-import { ParsedCsvData } from '../../src/types'; 
+// import { parse as papaParse } from 'papaparse'; // Old named import
+import Papa from 'papaparse'; // Import the default export
+const { parse: papaParse } = Papa; // Destructure the parse function
+import { createChartImage } from '../lib/charting-logic.js';
+import { ParsedCsvData } from '../lib/types.js';
 
 // --- A2A Interfaces ---
 
@@ -31,7 +33,7 @@ interface A2AErrorResponse {
   };
 }
 
-type A2AResponse = A2ASuccessResponse | A2AErrorResponse;
+// type A2AResponse = A2ASuccessResponse | A2AErrorResponse; // Commented out as unused
 
 // --- Helper Function for Data Type Detection ---
 
@@ -53,7 +55,7 @@ function detectColumnTypes(data: any[], headers: string[]): ColumnAnalysis {
   if (!data || data.length === 0 || !headers || headers.length === 0) return analysis;
   const sampleData = data.slice(0, SAMPLE_SIZE);
   for (const header of headers) {
-    let numberCount = 0, stringCount = 0, booleanCount = 0, dateCount = 0, nonNullSamples = 0;
+    let numberCount = 0, booleanCount = 0, dateCount = 0, nonNullSamples = 0;
     for (const row of sampleData) {
       const value = row[header];
       if (value === null || value === undefined || value === '') continue;
@@ -64,8 +66,9 @@ function detectColumnTypes(data: any[], headers: string[]): ColumnAnalysis {
         const potentialNum = Number(value);
         if (!isNaN(potentialNum) && value.trim() !== '') numberCount++;
         else if (DATE_REGEX.test(value)) dateCount++;
-        else stringCount++;
-      } else stringCount++;
+      } else {
+        // else stringCount++; // This else should also be removed or modified
+      }
     }
     let dominantType: 'number' | 'string' | 'boolean' | 'date' | 'unknown' = 'unknown';
     if (nonNullSamples === 0) dominantType = 'unknown';
@@ -197,9 +200,9 @@ export default async function handler(
 // --- Helper function to encapsulate CSV Parsing ---
 async function parseCsvData(csvString: string): Promise<{ data: any[], headers: string[] }> {
   return new Promise((resolve, reject) => {
-    Papa.parse(csvString, {
+    papaParse(csvString, {
       header: true, skipEmptyLines: true, dynamicTyping: true,
-      complete: (results: Papa.ParseResult<any>) => {
+      complete: (results: any) => {
         if (results.errors && results.errors.length > 0) {
           console.error('CSV Parsing Errors:', results.errors);
           const firstError = results.errors[0];

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as Papa from 'papaparse';
-import { createChartImage } from './charting-logic';
-import { ParsedCsvData } from './types';
+import { createChartImage } from '../api/lib/charting-logic.js';
+import { ParsedCsvData } from '../api/lib/types.js';
 
 // Test setup: Load and parse data once
 let parsedData: ParsedCsvData;
