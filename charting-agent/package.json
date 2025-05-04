@@ -6,12 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
   },
   "devDependencies": {
-    "@vercel/node": "^5.1.15",
+    "@types/node": "^22.15.3",
+    "@types/papaparse": "^5.3.15",
+    "@vercel/node": "^2.3.0",
+    "@vitest/ui": "^3.1.2",
+    "canvas": "^3.1.0",
     "typescript": "~5.7.2",
-    "vite": "^6.3.1"
+    "vite": "^6.3.1",
+    "vitest": "^3.1.2"
   },
   "dependencies": {
     "chart.js": "^4.4.9",
