@@ -1,6 +1,8 @@
 {
   "name": "Charting Agent",
   "description": "Analyzes CSV data and generates suggested chart images via an API endpoint.",
+  "version": "0.1.0",
+  "lastUpdated": "YYYY-MM-DDTHH:mm:ssZ",
   "capabilities": {
     "accepts": ["text/csv"],
     "returns": ["application/json", "image/png", "image/jpeg", "image/svg"]

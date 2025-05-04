@@ -48,6 +48,20 @@ async function displayAgentCard() {
       `).join('') || '<p>No methods defined.</p>'}
     `;
 
+    const nameElement = document.getElementById('agent-name');
+    const descriptionElement = document.getElementById('agent-description');
+    const endpointElement = document.getElementById('agent-endpoint');
+    const versionElement = document.getElementById('agent-version'); 
+    const lastUpdatedElement = document.getElementById('agent-last-updated'); 
+
+    if (nameElement) nameElement.textContent = agentInfo.name || 'N/A';
+    if (descriptionElement) descriptionElement.textContent = agentInfo.description || 'No description available.';
+    if (endpointElement) endpointElement.textContent = agentInfo.endpoint || 'N/A';
+    if (versionElement) versionElement.textContent = agentInfo.version || 'N/A'; 
+    if (lastUpdatedElement) { 
+      lastUpdatedElement.textContent = agentInfo.lastUpdated?.startsWith('YYYY') ? 'Not set' : (agentInfo.lastUpdated || 'N/A'); 
+    }
+
   } catch (error: any) {
     console.error("Error displaying agent card:", error);
     cardElement.classList.remove('loading');
