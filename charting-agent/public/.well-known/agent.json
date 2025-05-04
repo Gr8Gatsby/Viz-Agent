@@ -1,5 +1,5 @@
 {
-  "name": "Simple Charting Agent (Vercel)",
+  "name": "Charting Agent",
   "description": "Analyzes CSV data and generates suggested chart images via an API endpoint.",
   "capabilities": {
     "accepts": ["text/csv"],
