@@ -1,11 +1,17 @@
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { createCanvas, registerFont } from 'canvas'; // Import registerFont
 import * as path from 'path'; // Import path for finding font file
+import { fileURLToPath } from 'url'; // Import necessary URL functions
 import { ParsedCsvData } from './types.js'; // Needs .js extension for ESM
+
+// --- ESM Equivalent for __dirname ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// ----------------------------------
 
 // --- Font Registration ---
 // Construct the path to the font file relative to the current file
-// __dirname points to the directory of the current module (api/lib/)
+// Use the ESM-compatible __dirname derived above
 const fontPath = path.join(__dirname, 'fonts', 'NotoSans-VariableFont_wdth,wght.ttf');
 console.log(`Attempting to register font at: ${fontPath}`);
 try {
