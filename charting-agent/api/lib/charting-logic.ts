@@ -1,6 +1,23 @@
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
-import { createCanvas } from 'canvas'; // Use node-canvas for offscreen rendering
+import { createCanvas, registerFont } from 'canvas'; // Import registerFont
+import * as path from 'path'; // Import path for finding font file
 import { ParsedCsvData } from './types.js'; // Needs .js extension for ESM
+
+// --- Font Registration ---
+// Construct the path to the font file relative to the current file
+// __dirname points to the directory of the current module (api/lib/)
+const fontPath = path.join(__dirname, 'fonts', 'NotoSans-VariableFont_wdth,wght.ttf');
+console.log(`Attempting to register font at: ${fontPath}`);
+try {
+  registerFont(fontPath, { family: 'Noto Sans' });
+  console.log('Font Noto Sans registered successfully.');
+  // Optionally set it as the default font for Chart.js
+  Chart.defaults.font.family = 'Noto Sans'; 
+} catch (err) {
+  console.error('Error registering font:', err); 
+  // Proceed without the font, hoping a system default might work (or fail with tofu)
+}
+// -----------------------
 
 // Register necessary Chart.js components
 Chart.register(...registerables);
@@ -61,6 +78,9 @@ export async function createChartImage(
     options: {
       responsive: false, // Important for node-canvas
       animation: false, // Important for node-canvas
+      font: {
+        family: 'Noto Sans' // Explicitly use the registered font
+      },
       plugins: {
         title: {
           display: !!options.title,
