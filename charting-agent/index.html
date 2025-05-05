@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + TS</title>
+    <!-- Add Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
   <body>
     <div id="app">
@@ -12,6 +14,7 @@
     </div>
     
     <!-- Agent Card Container -->
+    <!-- 
     <div id="agent-card-container">
       <div id="agent-card" class="card loading">
         <div class="card-header">
@@ -32,6 +35,49 @@
           </div>
         </div>
       </div>
+    </div>
+    -->
+
+    <!-- <h1>Charting Agent</h1> -->
+    <div id="agent-info-display" class="card loading">
+      <!-- New Flip Card Structure -->
+      <div class="flip-card">
+        <div class="flip-card-inner">
+          <div class="flip-card-front">
+            <!-- Content for the front of the card -->
+            <div class="card-header">
+              <h2 id="agent-name-front">Loading Agent Name...</h2>
+              <!-- Maybe an agent icon/logo could go here -->
+            </div>
+            <div class="card-body">
+               <p id="agent-description-front">Loading description...</p>
+               <!-- Details Section -->
+               <div class="agent-details">
+                 <p><span class="icon-placeholder"><i class="fas fa-scroll"></i></span> <strong>Version:</strong> <span id="agent-version-front">Loading...</span></p>
+                 <p><span class="icon-placeholder"><i class="fas fa-clock"></i></span> <strong>Updated:</strong> <span id="agent-last-updated">Loading...</span></p>
+                 <p><span class="icon-placeholder"><i class="fas fa-globe"></i></span> <strong>Location:</strong> <code id="agent-location-front">Loading...</code></p>
+               </div>
+               <p class="click-prompt"><small>(Click card to see tasks)</small></p>
+            </div>
+          </div>
+          <div class="flip-card-back">
+            <!-- Content for the back of the card -->
+             <div class="card-header">
+               <h2>Supported Tasks</h2>
+             </div>
+             <div class="card-body">
+               <ul id="agent-methods-back">
+                 <li>Loading tasks...</li>
+               </ul>
+             </div>
+             <div class="card-footer">
+                <!-- Keep endpoint on back for technical detail? Or remove? -->
+               <span id="agent-endpoint-back"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- End Flip Card Structure -->
     </div>
 
     <script type="module" src="/src/main.ts"></script>

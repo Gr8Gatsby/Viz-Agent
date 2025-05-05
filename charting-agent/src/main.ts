@@ -9,9 +9,20 @@ console.log('Charting Agent page loaded. Card info below. Interaction via API en
 
 // --- Display Agent Card Info --- 
 
-const cardElement = document.getElementById('agent-card')!;
-const cardHeader = cardElement.querySelector('.card-header')!;
-const cardBody = cardElement.querySelector('.card-body')!;
+const cardContainer = document.getElementById('agent-info-display')!;
+const flipCard = cardContainer.querySelector('.flip-card')!;
+const flipCardInner = cardContainer.querySelector('.flip-card-inner')!;
+
+// Front elements
+const nameElementFront = document.getElementById('agent-name-front')!;
+const descriptionElementFront = document.getElementById('agent-description-front')!;
+const versionElementFront = document.getElementById('agent-version-front')!;
+const lastUpdatedElement = document.getElementById('agent-last-updated')!;
+const locationElementFront = document.getElementById('agent-location-front')!;
+
+// Back elements
+const methodsListBack = document.getElementById('agent-methods-back')!;
+const endpointElementBack = document.getElementById('agent-endpoint-back')!;
 
 async function displayAgentCard() {
   try {
@@ -22,52 +33,45 @@ async function displayAgentCard() {
     const agentInfo = await response.json();
 
     // Remove loading state
-    cardElement.classList.remove('loading');
-    cardHeader.innerHTML = `<h2>${agentInfo.name || 'Charting Agent'}</h2>`; // Card Title
+    cardContainer.classList.remove('loading');
 
-    // Populate card body
-    cardBody.innerHTML = `
-      <p><strong>Description:</strong> ${agentInfo.description || 'N/A'}</p>
-      <p><strong>API Endpoint:</strong> <a href="${agentInfo.endpoint}" target="_blank">${agentInfo.endpoint}</a></p>
-      <hr>
-      <h4>Capabilities:</h4>
-      <ul>
-        <li>Accepts: <code>${(agentInfo.capabilities?.accepts || []).join(', ') || 'N/A'}</code></li>
-        <li>Returns: <code>${(agentInfo.capabilities?.returns || []).join(', ') || 'N/A'}</code></li>
-      </ul>
-      <h4>Methods (via Endpoint):</h4>
-      ${(agentInfo.methods || []).map((method: any) => `
-        <div class="method">
-          <strong>${method.name}</strong>
-          <p><small>${method.description || ''}</small></p>
-          <ul>
-            <li>Accepts (in JSON body): <code>${typeof method.accepts === 'string' ? method.accepts : JSON.stringify(method.accepts)}</code></li>
-            <li>Returns (in JSON response): <code>${typeof method.returns === 'string' ? method.returns : JSON.stringify(method.returns)}</code></li>
-          </ul>
-        </div>
-      `).join('') || '<p>No methods defined.</p>'}
-    `;
+    // Populate card front
+    nameElementFront.textContent = agentInfo.name || 'Charting Agent';
+    descriptionElementFront.textContent = agentInfo.description || 'Agent description unavailable.';
+    versionElementFront.textContent = agentInfo.version || 'N/A';
+    lastUpdatedElement.textContent = agentInfo.lastUpdated?.startsWith('YYYY') ? 'N/A' : (agentInfo.lastUpdated || 'N/A');
+    const agentJsonUrl = `${window.location.origin}/.well-known/agent.json`;
+    locationElementFront.innerHTML = `<a href="${agentJsonUrl}" target="_blank">${agentJsonUrl}</a>`;
 
-    const nameElement = document.getElementById('agent-name');
-    const descriptionElement = document.getElementById('agent-description');
-    const endpointElement = document.getElementById('agent-endpoint');
-    const versionElement = document.getElementById('agent-version'); 
-    const lastUpdatedElement = document.getElementById('agent-last-updated'); 
-
-    if (nameElement) nameElement.textContent = agentInfo.name || 'N/A';
-    if (descriptionElement) descriptionElement.textContent = agentInfo.description || 'No description available.';
-    if (endpointElement) endpointElement.textContent = agentInfo.endpoint || 'N/A';
-    if (versionElement) versionElement.textContent = agentInfo.version || 'N/A'; 
-    if (lastUpdatedElement) { 
-      lastUpdatedElement.textContent = agentInfo.lastUpdated?.startsWith('YYYY') ? 'Not set' : (agentInfo.lastUpdated || 'N/A'); 
+    // Populate card back (methods)
+    methodsListBack.innerHTML = ''; // Clear loading text
+    if (agentInfo.methods && agentInfo.methods.length > 0) {
+      agentInfo.methods.forEach((method: any) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${method.name}</strong><br><small>${method.description || 'No description'}</small>`;
+        methodsListBack.appendChild(li);
+      });
+    } else {
+      methodsListBack.innerHTML = '<li>No methods defined.</li>';
     }
+    endpointElementBack.innerHTML = `API Endpoint: <a href="${agentInfo.endpoint || '#'}" target="_blank">${agentInfo.endpoint || 'N/A'}</a>`;
+
+    // Add click listener for flip
+    flipCard.addEventListener('click', () => {
+      console.log('Flip card clicked!');
+      flipCardInner.classList.toggle('is-flipped');
+    });
 
   } catch (error: any) {
     console.error("Error displaying agent card:", error);
-    cardElement.classList.remove('loading');
-    cardElement.classList.add('error');
-    cardHeader.innerHTML = '<h2>Error Loading Agent Info</h2>';
-    cardBody.innerHTML = `<p>${error.message}</p>`;
+    cardContainer.classList.remove('loading');
+    cardContainer.classList.add('error');
+    // Display error on the front
+    nameElementFront.textContent = 'Error Loading Agent';
+    descriptionElementFront.innerHTML = `<p>${error.message}</p>`;
+    versionElementFront.textContent = 'N/A';
+    lastUpdatedElement.textContent = 'N/A';
+    locationElementFront.textContent = 'Error loading location';
   }
 }
 
@@ -76,4 +80,4 @@ displayAgentCard();
 // Optional: Keep basic message in #app or remove/replace
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <!-- Can add other frontend elements here if needed -->
-`
+`;

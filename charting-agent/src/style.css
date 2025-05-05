@@ -28,6 +28,12 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  font-family: 'Noto Sans', sans-serif;
+  background-color: #f0f2f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2rem;
 }
 
 h1 {
@@ -224,4 +230,220 @@ button:focus-visible {
 }
 #agent-card.error .card-body {
   color: #f7c6c5;
+}
+
+/* --- Card & Flip Card Styles --- */
+
+#agent-info-display {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-top: 1rem;
+  width: 420px;
+  min-height: 240px;
+}
+
+/* The flip card container - set the perspective */
+.flip-card {
+  background-color: transparent;
+  width: 100%;
+  perspective: 1000px;
+  position: relative;
+  min-height: 200px;
+}
+
+/* This container is needed to position the front and back side */
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  text-align: left;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  /* box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2); */
+  /* border-radius: 10px; */
+}
+
+/* Do an actual flip when a class is added to the inner container */
+.flip-card-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+
+/* Position the front and back side */
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  top: 0; 
+  left: 0; 
+  width: 100%;
+  min-height: 100%;
+  -webkit-backface-visibility: hidden; /* Safari */
+  backface-visibility: hidden;
+  border-radius: 10px; /* Apply radius here */
+  display: flex;
+  flex-direction: column;
+  /* background-color: #ffffff; */ /* Background set individually below */
+  overflow: hidden; 
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2); /* Apply shadow here */
+}
+
+/* Style the front side (more professional dark theme) */
+.flip-card-front {
+  background: linear-gradient(to bottom right, #3c4a5e, #2d3748);
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+}
+
+.flip-card-front .card-header {
+  background-color: rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  padding: 0.6rem 1rem;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom: 1px solid #4a5568;
+  margin-bottom: 0.6rem;
+}
+.flip-card-front .card-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  justify-content: space-between;
+}
+
+.flip-card-front .card-body {
+  padding: 0.8rem 1rem 0.6rem 1rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.flip-card-front .card-body p {
+  margin: 0 0 0.4rem 0;
+  line-height: 1.5;
+}
+.flip-card-front .card-body p:last-of-type {
+  margin-bottom: 0;
+}
+.flip-card-front .card-body small {
+  color: #666;
+  font-style: italic;
+}
+
+/* Details Section Styling */
+.agent-details {
+  margin-top: 0.8rem;
+  border-top: none;
+  padding-top: 0.5rem;
+}
+.agent-details p {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+  color: #a0aec0;
+}
+.agent-details strong {
+  color: #cbd5e0;
+  margin-right: 0.5em;
+  min-width: 60px;
+  display: inline-block;
+}
+.agent-details code,
+.agent-details code a {
+  color: #90cdf4;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+}
+
+.icon-placeholder {
+  display: inline-block;
+  width: 1.8em;
+  text-align: center;
+  margin-right: 0.5em;
+  color: #63b3ed;
+  font-size: 0.9em;
+}
+
+.icon-placeholder .fas {
+  vertical-align: middle;
+}
+
+.click-prompt {
+  text-align: center;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+.click-prompt small {
+  color: #718096;
+  font-size: 0.75rem;
+}
+
+/* Style the back side */
+.flip-card-back {
+  background-color: #1a202c;
+  color: white;
+  transform: rotateY(180deg);
+  border: 1px solid #4a5568;
+}
+
+.flip-card-back .card-header {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0.8rem 1.2rem;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom: 1px solid #4a5568;
+  margin-bottom: 0.8rem;
+}
+.flip-card-back .card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.flip-card-back .card-body {
+  padding: 1rem 1.2rem;
+  flex-grow: 1;
+}
+.flip-card-back #agent-methods-back {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.flip-card-back #agent-methods-back li {
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.flip-card-back .card-footer {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.8rem;
+  color: #ccc;
+  border-top: 1px solid #4a5568;
+  background-color: #1a202c;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  word-break: break-all;
+}
+.flip-card-back #agent-endpoint-back a {
+  color: #90cdf4;
+}
+
+/* Loading/Error states */
+#agent-info-display.loading .flip-card {
+  opacity: 0.5;
+}
+#agent-info-display.error .flip-card-inner {
+  border: 1px solid red;
+}
+
+/* Remove default styles if they conflict */
+#agent-card .card-header, 
+#agent-card .card-body {
+  padding: 0;
+  border: none;
+  background: none;
 }
